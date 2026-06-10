@@ -1,0 +1,10 @@
+{
+  "name": "드론스팟맵",
+  "short_name": "드론스팟맵",
+  "description": "드론 촬영 스팟과 비행 전 확인 정보를 모아보는 지도 서비스",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#172033",
+  "lang": "ko-KR"
+}

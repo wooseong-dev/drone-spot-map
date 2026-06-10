@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#172033"/>
+  <circle cx="980" cy="140" r="220" fill="#2563eb" opacity="0.25"/>
+  <circle cx="180" cy="520" r="180" fill="#0ca678" opacity="0.22"/>
+  <text x="80" y="190" fill="#ffffff" font-family="Pretendard, Apple SD Gothic Neo, sans-serif" font-size="72" font-weight="800">드론스팟맵</text>
+  <text x="82" y="270" fill="#dbeafe" font-family="Pretendard, Apple SD Gothic Neo, sans-serif" font-size="34" font-weight="700">드론 촬영 스팟 · 비행 전 확인 지도</text>
+  <text x="82" y="350" fill="#ffffff" font-family="Pretendard, Apple SD Gothic Neo, sans-serif" font-size="28">이륙 포인트, 주차, 일몰·야경 명소, 공역 확인 링크를 한 번에</text>
+  <rect x="82" y="420" width="330" height="58" rx="29" fill="#ffffff" opacity="0.95"/>
+  <text x="116" y="458" fill="#172033" font-family="Pretendard, Apple SD Gothic Neo, sans-serif" font-size="24" font-weight="800">날리기 전, 먼저 보기</text>
+</svg>
