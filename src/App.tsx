@@ -1,0 +1,211 @@
+import { useEffect, useMemo, useState } from 'react';
+import { initialSpots } from './data/initialSpots';
+import { airspaceZones } from './data/airspaceZones';
+import { vworldLayers, VWorldLayerType } from './data/vworldLayers';
+import { Review, SavedStatus, Spot, SpotCategory, ZoneType } from './types';
+import Sidebar from './components/Sidebar';
+import SpotMap from './components/SpotMap';
+import SpotDetail from './components/SpotDetail';
+import AddSpotModal from './components/AddSpotModal';
+import ReviewModal from './components/ReviewModal';
+import Disclaimer from './components/Disclaimer';
+import LayerPanel from './components/LayerPanel';
+import { zonesForPoint } from './utils';
+import { getSpotIdFromPath, spotPath, updateSeo } from './seo';
+
+const STORAGE_KEY = 'drone-spot-map-spots-v7';
+const PREVIOUS_STORAGE_KEY = 'drone-spot-map-spots-v6';
+const LEGACY_STORAGE_KEY = 'drone-spot-map-spots-v5';
+const SAVED_KEY = 'drone-spot-map-saved-status-v6';
+
+function normalizeSpot(spot: Spot): Spot {
+  return {
+    ...spot,
+    takeoffSpace: spot.takeoffSpace ?? 'unknown',
+    crowdLevel: spot.crowdLevel ?? 'unknown',
+    viewPoints: spot.viewPoints ?? [],
+    cautions: spot.cautions ?? [],
+  };
+}
+
+function loadSpots(): Spot[] {
+  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(PREVIOUS_STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+  if (!saved) return initialSpots.map(normalizeSpot);
+  try { return (JSON.parse(saved) as Spot[]).map(normalizeSpot); } catch { return initialSpots.map(normalizeSpot); }
+}
+function saveSpots(spots: Spot[]) { localStorage.setItem(STORAGE_KEY, JSON.stringify(spots)); }
+function loadSavedStatus(): Record<string, SavedStatus[]> {
+  const saved = localStorage.getItem(SAVED_KEY);
+  if (!saved) return {};
+  try { return JSON.parse(saved) as Record<string, SavedStatus[]>; } catch { return {}; }
+}
+function saveSavedStatus(value: Record<string, SavedStatus[]>) { localStorage.setItem(SAVED_KEY, JSON.stringify(value)); }
+
+const defaultLayers: Record<ZoneType, boolean> = {
+  noFly: false, restricted: false, control: false, danger: false, nationalPark: false, heritage: false,
+};
+
+const defaultVWorldLayers: Record<VWorldLayerType, boolean> = {
+  noFly: true,
+  restricted: true,
+  control: true,
+  military: false,
+  danger: false,
+  droneZone: false,
+};
+
+const vworldKey = import.meta.env.VITE_VWORLD_KEY as string | undefined;
+const vworldDomain = import.meta.env.VITE_VWORLD_DOMAIN as string | undefined;
+
+export type QuickFilter = 'parking' | 'beginner' | 'sunset' | 'night' | 'quiet' | 'wind' | 'approval';
+
+export default function App() {
+  const [spots,setSpots]=useState<Spot[]>(loadSpots);
+  const initialSpotId = getSpotIdFromPath(window.location.pathname);
+  const [selectedSpotId,setSelectedSpotId]=useState<string|undefined>(() => spots.some((spot)=>spot.id===initialSpotId) ? initialSpotId : spots[0]?.id);
+  const [search,setSearch]=useState('');
+  const [category,setCategory]=useState<'all'|SpotCategory>('all');
+  const [quickFilters,setQuickFilters]=useState<QuickFilter[]>([]);
+  const [savedStatus,setSavedStatus]=useState<Record<string, SavedStatus[]>>(loadSavedStatus);
+  const [addOpen,setAddOpen]=useState(false);
+  const [reviewOpen,setReviewOpen]=useState(false);
+  const [draftCoords,setDraftCoords]=useState<{ lat: number; lng: number } | undefined>();
+  const [visibleLayers,setVisibleLayers]=useState<Record<ZoneType, boolean>>(defaultLayers);
+  const [visibleVWorldLayers,setVisibleVWorldLayers]=useState<Record<VWorldLayerType, boolean>>(defaultVWorldLayers);
+
+  useEffect(() => saveSavedStatus(savedStatus), [savedStatus]);
+
+  useEffect(() => {
+    function handlePopState() {
+      const pathSpotId = getSpotIdFromPath(window.location.pathname);
+      setSelectedSpotId(spots.some((spot)=>spot.id===pathSpotId) ? pathSpotId : spots[0]?.id);
+    }
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [spots]);
+
+  const filteredSpots = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return spots.filter((spot) => {
+      const categoryMatched = category === 'all' || spot.category === category;
+      const text = [spot.name, spot.address, spot.description, spot.takeoffPoint, ...spot.tags, ...spot.bestTime, ...spot.viewPoints, ...spot.cautions].join(' ').toLowerCase();
+      const searchMatched = !keyword || text.includes(keyword);
+      const quickMatched = quickFilters.every((filter) => {
+        if (filter === 'parking') return spot.parking === 'good';
+        if (filter === 'beginner') return spot.difficulty === 'easy' || spot.cautionLevel === 'easy';
+        if (filter === 'sunset') return spot.category === 'sunset' || spot.bestTime.some((item)=>item.includes('일몰')) || spot.tags.some((tag)=>tag.includes('일몰'));
+        if (filter === 'night') return spot.category === 'night' || spot.bestTime.some((item)=>item.includes('야경')) || spot.tags.some((tag)=>tag.includes('야경'));
+        if (filter === 'quiet') return spot.crowdLevel === 'low' || spot.tags.some((tag)=>tag.includes('사람 적'));
+        if (filter === 'wind') return spot.cautions.some((item)=>item.includes('바람')) || spot.tags.some((tag)=>tag.includes('바람'));
+        if (filter === 'approval') return spot.cautionLevel === 'approval' || spot.tags.some((tag)=>tag.includes('공식확인'));
+        return true;
+      });
+      return categoryMatched && searchMatched && quickMatched;
+    });
+  }, [spots, category, search, quickFilters]);
+
+  const selectedSpot = spots.find((spot)=>spot.id===selectedSpotId);
+
+  useEffect(() => {
+    updateSeo(selectedSpot);
+  }, [selectedSpot]);
+
+  function selectSpot(spot: Spot) {
+    setSelectedSpotId(spot.id);
+    const nextPath = spotPath(spot);
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, '', nextPath);
+    }
+  }
+
+  function clearSelectedSpot() {
+    setSelectedSpotId(undefined);
+    if (window.location.pathname !== '/') {
+      window.history.pushState({}, '', '/');
+    }
+  }
+
+  const visibleZones = airspaceZones.filter((zone)=>visibleLayers[zone.type]);
+  const matchedZones = selectedSpot ? zonesForPoint(selectedSpot.lat, selectedSpot.lng, visibleZones) : [];
+
+  function updateSpots(next: Spot[]) { setSpots(next); saveSpots(next); }
+  function handleAddSpot(spot: Spot) { const next=[normalizeSpot(spot),...spots]; updateSpots(next); selectSpot(spot); setDraftCoords(undefined); }
+  function handleAddReview(review: Review) {
+    if (!selectedSpot) return;
+    const next = spots.map((spot)=>spot.id===selectedSpot.id ? { ...spot, reviews:[review, ...spot.reviews] } : spot);
+    updateSpots(next);
+  }
+  function toggleLayer(type: ZoneType) { setVisibleLayers((prev)=>({ ...prev, [type]: !prev[type] })); }
+  function toggleAllLayers(value: boolean) {
+    setVisibleLayers({ noFly:value, restricted:value, control:value, danger:value, nationalPark:value, heritage:value });
+  }
+  function handleMapContextAdd(lat: number, lng: number) {
+    setDraftCoords({ lat, lng });
+    setAddOpen(true);
+  }
+  function closeAddModal() {
+    setAddOpen(false);
+    setDraftCoords(undefined);
+  }
+  function toggleVWorldLayer(type: VWorldLayerType) {
+    setVisibleVWorldLayers((prev)=>({ ...prev, [type]: !prev[type] }));
+  }
+  function toggleAllVWorldLayers(value: boolean) {
+    const next = Object.fromEntries(vworldLayers.map((layer)=>[layer.id, value])) as Record<VWorldLayerType, boolean>;
+    setVisibleVWorldLayers(next);
+  }
+  function toggleQuickFilter(filter: QuickFilter) {
+    setQuickFilters((prev)=>prev.includes(filter) ? prev.filter((item)=>item!==filter) : [...prev, filter]);
+  }
+  function toggleSavedStatus(spotId: string, status: SavedStatus) {
+    setSavedStatus((prev) => {
+      const current = prev[spotId] ?? [];
+      const nextForSpot = current.includes(status) ? current.filter((item)=>item!==status) : [...current, status];
+      return { ...prev, [spotId]: nextForSpot };
+    });
+  }
+
+  return (
+    <div className="app">
+      <Sidebar spots={filteredSpots} selectedSpotId={selectedSpotId} category={category} search={search}
+        quickFilters={quickFilters} savedStatus={savedStatus}
+        onSearchChange={setSearch} onCategoryChange={setCategory} onQuickFilterToggle={toggleQuickFilter}
+        onSelectSpot={selectSpot} onAddClick={()=>setAddOpen(true)} />
+      <main className="main">
+        <Disclaimer />
+        <div className="mapArea">
+          <LayerPanel
+            visibleLayers={visibleLayers}
+            visibleVWorldLayers={visibleVWorldLayers}
+            vworldEnabled={Boolean(vworldKey)}
+            onToggle={toggleLayer}
+            onToggleAll={toggleAllLayers}
+            onToggleVWorld={toggleVWorldLayer}
+            onToggleAllVWorld={toggleAllVWorldLayers}
+          />
+          <SpotMap
+            spots={filteredSpots}
+            zones={airspaceZones}
+            visibleLayers={visibleLayers}
+            visibleVWorldLayers={visibleVWorldLayers}
+            vworldKey={vworldKey}
+            vworldDomain={vworldDomain}
+            selectedSpot={selectedSpot}
+            onSelectSpot={selectSpot}
+            onMapContextAdd={handleMapContextAdd}
+          />
+        </div>
+      </main>
+      <SpotDetail
+        spot={selectedSpot}
+        matchedZones={matchedZones}
+        savedStatuses={selectedSpot ? savedStatus[selectedSpot.id] ?? [] : []}
+        onToggleSavedStatus={(status)=>selectedSpot && toggleSavedStatus(selectedSpot.id, status)}
+        onClose={clearSelectedSpot}
+        onReviewClick={()=>setReviewOpen(true)}
+      />
+      <AddSpotModal open={addOpen} onClose={closeAddModal} onAdd={handleAddSpot} initialCoords={draftCoords}/>
+      <ReviewModal open={reviewOpen} spotName={selectedSpot?.name} onClose={()=>setReviewOpen(false)} onAdd={handleAddReview}/>
+    </div>
+  );
+}

@@ -1,0 +1,63 @@
+import { AirspaceZone } from '../types';
+
+export const airspaceZones: AirspaceZone[] = [
+  {
+    id: 'seoul-no-fly-sample',
+    name: '서울 도심 비행금지구역 샘플',
+    type: 'noFly',
+    description: '서울 도심권 비행금지구역 예시 레이어입니다. 실제 경계가 아니므로 공식 확인 필요.',
+    source: 'sample',
+    center: [37.5665, 126.978],
+    radiusKm: 10,
+  },
+  {
+    id: 'gimpo-control-sample',
+    name: '김포공항 관제권 샘플',
+    type: 'control',
+    description: '공항 관제권 예시 레이어입니다. 실제 경계가 아니므로 공식 확인 필요.',
+    source: 'sample',
+    center: [37.5583, 126.7906],
+    radiusKm: 9,
+  },
+  {
+    id: 'paldang-restricted-sample',
+    name: '팔당·남한강 비행주의 샘플',
+    type: 'restricted',
+    description: '팔당호 주변 비행/촬영 주의 예시 구역입니다. 실제 경계가 아니므로 공식 확인 필요.',
+    source: 'sample',
+    center: [37.51, 127.28],
+    radiusKm: 13,
+  },
+  {
+    id: 'ganghwa-danger-sample',
+    name: '강화권 군사지역 주의 샘플',
+    type: 'danger',
+    description: '강화권 군사지역/촬영주의 예시 구역입니다. 실제 경계가 아니므로 공식 확인 필요.',
+    source: 'sample',
+    polygon: [
+      [37.78, 126.20],
+      [37.78, 126.58],
+      [37.48, 126.58],
+      [37.48, 126.20],
+    ],
+    center: [37.63, 126.39],
+  },
+  {
+    id: 'bukhansan-park-sample',
+    name: '북한산 국립공원 샘플',
+    type: 'nationalPark',
+    description: '국립공원 드론 비행/촬영 주의 예시 레이어입니다.',
+    source: 'sample',
+    center: [37.658, 126.978],
+    radiusKm: 7,
+  },
+  {
+    id: 'heritage-sample',
+    name: '문화재보호구역 샘플',
+    type: 'heritage',
+    description: '문화재보호구역 예시 레이어입니다. 실제 촬영 가능 여부는 별도 확인 필요.',
+    source: 'sample',
+    center: [37.5796, 126.977],
+    radiusKm: 2,
+  },
+];
