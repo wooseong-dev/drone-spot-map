@@ -1,7 +1,7 @@
 import { Spot } from './types';
 
 const SITE_NAME = '드론스팟맵';
-const DEFAULT_ORIGIN = 'https://drone-spot-map.onrender.com';
+const DEFAULT_ORIGIN = 'https://www.dronespotmap.kr';
 
 function getOrigin() {
   if (typeof window === 'undefined') return DEFAULT_ORIGIN;

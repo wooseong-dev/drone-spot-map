@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://drone-spot-map.onrender.com/</loc>
+    <loc>https://www.dronespotmap.kr/</loc>
     <lastmod>2026-06-10</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://drone-spot-map.onrender.com/spots/paldang-toechon-river</loc>
+    <loc>https://www.dronespotmap.kr/spots/paldang-toechon-river</loc>
     <lastmod>2026-06-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://drone-spot-map.onrender.com/spots/yangpyeong-dumulmeori</loc>
+    <loc>https://www.dronespotmap.kr/spots/yangpyeong-dumulmeori</loc>
     <lastmod>2026-06-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://drone-spot-map.onrender.com/spots/sihwa-dae-budo</loc>
+    <loc>https://www.dronespotmap.kr/spots/sihwa-dae-budo</loc>
     <lastmod>2026-06-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://drone-spot-map.onrender.com/spots/ganghwa-dongmak</loc>
+    <loc>https://www.dronespotmap.kr/spots/ganghwa-dongmak</loc>
     <lastmod>2026-06-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>

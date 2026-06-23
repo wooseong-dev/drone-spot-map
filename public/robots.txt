@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://drone-spot-map.onrender.com/sitemap.xml
+Sitemap: https://www.dronespotmap.kr/sitemap.xml
