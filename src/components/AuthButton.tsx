@@ -16,7 +16,7 @@ export default function AuthButton({ user }: AuthButtonProps) {
     event.preventDefault();
 
     if (!email.trim()) {
-      setMessage('이메일을 입력해줘.');
+      setMessage('이메일을 입력해주세요.');
       return;
     }
 
@@ -34,11 +34,11 @@ export default function AuthButton({ user }: AuthButtonProps) {
 
     if (error) {
       console.error('[Supabase] Login error:', error);
-      setMessage('로그인 메일 발송에 실패했어.');
+      setMessage('로그인 메일을 보내지 못했습니다. 잠시 후 다시 시도해주세요.');
       return;
     }
 
-    setMessage('로그인 링크를 이메일로 보냈어. 메일함을 확인해줘.');
+    setMessage('로그인 링크를 이메일로 보냈습니다. 메일함을 확인해주세요.');
   }
 
   async function handleLogout() {
@@ -50,7 +50,7 @@ export default function AuthButton({ user }: AuthButtonProps) {
     return (
       <div className="authBox">
         <div className="authUser">
-          <span className="authLabel">로그인됨</span>
+          <span className="authLabel">로그인 상태</span>
           <strong>{user.email}</strong>
         </div>
         <button className="secondaryButton" type="button" onClick={handleLogout}>
@@ -64,18 +64,18 @@ export default function AuthButton({ user }: AuthButtonProps) {
     <div className="authBox">
       {!open ? (
         <button className="primaryButton" type="button" onClick={() => setOpen(true)}>
-          로그인하고 북마크 저장
+          로그인하고 장소 저장하기
         </button>
       ) : (
         <form className="authForm" onSubmit={handleLogin}>
           <input
             type="email"
-            placeholder="이메일 입력"
+            placeholder="이메일을 입력해주세요"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
           <button className="primaryButton" type="submit" disabled={loading}>
-            {loading ? '보내는 중...' : '로그인 링크 받기'}
+            {loading ? '메일 발송 중...' : '로그인 링크 받기'}
           </button>
           <button
             className="secondaryButton"

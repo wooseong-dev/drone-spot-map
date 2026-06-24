@@ -1,9 +1,7 @@
-import { Database, ExternalLink, Layers } from 'lucide-react';
+import { VWorldLayerType } from '../data/vworldLayers';
 import { ZoneType } from '../types';
-import { getZoneColor, zoneLabel } from '../utils';
-import { VWorldLayerType, vworldLayers } from '../data/vworldLayers';
 
-interface LayerPanelProps {
+type LayerPanelProps = {
   visibleLayers: Record<ZoneType, boolean>;
   visibleVWorldLayers: Record<VWorldLayerType, boolean>;
   vworldEnabled: boolean;
@@ -11,80 +9,77 @@ interface LayerPanelProps {
   onToggleAll: (value: boolean) => void;
   onToggleVWorld: (type: VWorldLayerType) => void;
   onToggleAllVWorld: (value: boolean) => void;
-}
+};
 
-const zoneTypes: ZoneType[] = ['noFly', 'restricted', 'control', 'danger', 'nationalPark', 'heritage'];
+const officialLayers: { id: VWorldLayerType; label: string }[] = [
+  { id: 'noFly', label: '비행금지구역' },
+  { id: 'restricted', label: '비행제한구역' },
+  { id: 'control', label: '관제권' },
+  { id: 'military', label: '군작전구역' },
+  { id: 'danger', label: '위험구역' },
+  { id: 'droneZone', label: '드론시범사업구역' },
+];
 
 export default function LayerPanel({
-  visibleLayers,
   visibleVWorldLayers,
   vworldEnabled,
-  onToggle,
-  onToggleAll,
   onToggleVWorld,
   onToggleAllVWorld,
 }: LayerPanelProps) {
+  const enabledCount = officialLayers.filter((layer) => visibleVWorldLayers[layer.id]).length;
+
   return (
-    <section className="layerPanel">
-      <div className="layerHeader">
-        <div><Layers size={17} /> 샘플 참고 레이어</div>
-        <div className="layerActions">
-          <button onClick={() => onToggleAll(true)}>전체</button>
-          <button onClick={() => onToggleAll(false)}>해제</button>
+    <section className="officialLayerPanel compactLayerPanel" aria-label="공식 공역 레이어">
+      <div className="officialLayerHeader compactLayerHeader">
+        <div>
+          <strong>공식 공역</strong>
+          <p>비행 전 참고용 공역 레이어입니다.</p>
         </div>
-      </div>
 
-      <div className="layerList">
-        {zoneTypes.map((type) => (
-          <label key={type} className="layerItem">
-            <input type="checkbox" checked={visibleLayers[type]} onChange={() => onToggle(type)} />
-            <span className="layerSwatch" style={{ borderColor: getZoneColor(type), backgroundColor: `${getZoneColor(type)}24` }} />
-            {zoneLabel[type]}
-          </label>
-        ))}
-      </div>
-
-      <div className="layerDivider" />
-
-      <div className="layerHeader">
-        <div><Database size={17} /> 브이월드 공공데이터</div>
-        <div className="layerActions">
-          <button onClick={() => onToggleAllVWorld(true)}>전체</button>
-          <button onClick={() => onToggleAllVWorld(false)}>해제</button>
+        <div className="layerHeaderActions">
+          <button type="button" onClick={() => onToggleAllVWorld(true)}>
+            전체
+          </button>
+          <button type="button" onClick={() => onToggleAllVWorld(false)}>
+            해제
+          </button>
         </div>
       </div>
 
       {!vworldEnabled && (
-        <div className="apiNotice">
-          `.env`에 <strong>VITE_VWORLD_KEY</strong>를 넣으면 실제 WMS 레이어가 표시돼.
+        <div className="layerNotice">
+          공식 공역 레이어를 불러올 수 없습니다. 관리자 설정을 확인해주세요.
         </div>
       )}
 
-      <div className="layerList">
-        {vworldLayers.map((layer) => (
-          <label key={layer.id} className={vworldEnabled ? 'layerItem' : 'layerItem disabled'}>
+      <div className="officialLayerList compactLayerList">
+        {officialLayers.map((layer) => (
+          <label key={layer.id} className="officialLayerItem compactLayerItem">
             <input
               type="checkbox"
-              disabled={!vworldEnabled}
               checked={visibleVWorldLayers[layer.id]}
+              disabled={!vworldEnabled}
               onChange={() => onToggleVWorld(layer.id)}
             />
-            <span className="layerSwatch publicLayer" />
-            {layer.label}
+            <span className={`vworldLegend ${layer.id}`} />
+            <span>{layer.label}</span>
           </label>
         ))}
       </div>
 
-      <div className="officialLinks">
-        <a href="https://drone.onestop.go.kr/" target="_blank" rel="noreferrer">
-          <ExternalLink size={14} /> 드론원스톱
-        </a>
-        <a href="https://fly-safe.dji.com/" target="_blank" rel="noreferrer">
-          <ExternalLink size={14} /> DJI Fly Safe
-        </a>
-        <a href="https://www.vworld.kr/dev/v4dv_wmsguide2_s001.do" target="_blank" rel="noreferrer">
-          <ExternalLink size={14} /> 브이월드 WMS
-        </a>
+      <div className="officialLayerFooter compactLayerFooter">
+        <span>{enabledCount}개 표시 중</span>
+        <div>
+          <a href="https://drone.onestop.go.kr/" target="_blank" rel="noreferrer">
+            드론원스톱
+          </a>
+          <a href="https://www.dji.com/kr/flysafe" target="_blank" rel="noreferrer">
+            DJI Fly Safe
+          </a>
+          <a href="https://www.vworld.kr/" target="_blank" rel="noreferrer">
+            브이월드
+          </a>
+        </div>
       </div>
     </section>
   );

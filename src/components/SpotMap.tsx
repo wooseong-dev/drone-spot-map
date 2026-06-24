@@ -136,7 +136,7 @@ export default function SpotMap({
     <div className="mapShell">
       {hasVWorldKey && hasActiveVWorldLayer && !shouldShowVWorldLayers && (
         <div className="zoomNotice">
-          브이월드 공공데이터 레이어는 지도가 너무 복잡해지는 걸 막으려고 줌 {MIN_VWORLD_ZOOM} 이상에서 표시돼.
+          공역 레이어는 지도의 가독성을 위해 확대 시 표시됩니다.
         </div>
       )}
       <MapContainer center={[37.47, 127.05]} zoom={9} scrollWheelZoom className="map">
