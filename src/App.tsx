@@ -112,6 +112,9 @@ export default function App() {
   const [spots, setSpots] = useState<Spot[]>(loadSpots);
   const [user, setUser] = useState<User | null>(null);
 
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileLayersOpen, setMobileLayersOpen] = useState(false);
+
   const initialSpotId = getSpotIdFromPath(window.location.pathname);
 
   const [selectedSpotId, setSelectedSpotId] = useState<string | undefined>(() =>
@@ -227,6 +230,19 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [spots]);
 
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+
+      setMobileSidebarOpen(false);
+      setMobileLayersOpen(false);
+    }
+
+    window.addEventListener('keydown', handleEscape);
+
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, []);
+
   const filteredSpots = useMemo(() => {
     const keyword = search.trim().toLowerCase();
 
@@ -307,6 +323,7 @@ export default function App() {
 
   function selectSpot(spot: Spot) {
     setSelectedSpotId(spot.id);
+    setMobileSidebarOpen(false);
 
     const nextPath = spotPath(spot);
 
@@ -340,6 +357,7 @@ export default function App() {
     updateSpots(next);
     selectSpot(spot);
     setDraftCoords(undefined);
+    setMobileSidebarOpen(false);
   }
 
   function handleAddReview(review: Review) {
@@ -432,23 +450,83 @@ export default function App() {
     }
   }
 
-  return (
-    <div className="app">
-      <Sidebar
-        spots={filteredSpots}
-        selectedSpotId={selectedSpotId}
-        category={category}
-        search={search}
-        quickFilters={quickFilters}
-        savedStatus={savedStatus}
-        onSearchChange={setSearch}
-        onCategoryChange={setCategory}
-        onQuickFilterToggle={toggleQuickFilter}
-        onSelectSpot={selectSpot}
-        onAddClick={() => setAddOpen(true)}
-      />
+  const activeFilterCount =
+    quickFilters.length + (category === 'all' ? 0 : 1) + (search.trim() ? 1 : 0);
 
-      <div className="floatingAuth">
+  return (
+    <div className="app responsiveApp">
+      <header className="mobileHeader">
+        <button
+          className="mobileIconButton"
+          type="button"
+          aria-label="장소 검색 메뉴 열기"
+          onClick={() => setMobileSidebarOpen(true)}
+        >
+          ☰
+        </button>
+
+        <div className="mobileHeaderTitle">
+          <strong>드론스팟맵</strong>
+          <span>드론 촬영지 정보</span>
+        </div>
+
+        <button
+          className="mobileFilterButton"
+          type="button"
+          onClick={() => setMobileSidebarOpen(true)}
+        >
+          필터{activeFilterCount > 0 ? ` ${activeFilterCount}` : ''}
+        </button>
+      </header>
+
+      {mobileSidebarOpen && (
+        <button
+          className="mobileOverlay"
+          type="button"
+          aria-label="모바일 메뉴 닫기"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={`sidebarShell ${mobileSidebarOpen ? 'isOpen' : ''}`}>
+        <div className="mobileDrawerHeader">
+          <div>
+            <strong>장소 검색</strong>
+            <span>스팟, 필터, 로그인</span>
+          </div>
+          <button
+            className="mobileCloseButton"
+            type="button"
+            aria-label="장소 검색 메뉴 닫기"
+            onClick={() => setMobileSidebarOpen(false)}
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="sidebarAuthMobile">
+          <AuthButton user={user} />
+        </div>
+
+        <Sidebar
+          spots={filteredSpots}
+          selectedSpotId={selectedSpotId}
+          category={category}
+          search={search}
+          quickFilters={quickFilters}
+          savedStatus={savedStatus}
+          onSearchChange={setSearch}
+          onCategoryChange={setCategory}
+          onQuickFilterToggle={toggleQuickFilter}
+          onSelectSpot={selectSpot}
+          onAddClick={() => {
+            setAddOpen(true);
+            setMobileSidebarOpen(false);
+          }}
+        />
+      </aside>
+
+      <div className="floatingAuth desktopAuth">
         <AuthButton user={user} />
       </div>
 
@@ -456,15 +534,25 @@ export default function App() {
         <Disclaimer />
 
         <div className="mapArea">
-          <LayerPanel
-            visibleLayers={visibleLayers}
-            visibleVWorldLayers={visibleVWorldLayers}
-            vworldEnabled={Boolean(vworldKey)}
-            onToggle={toggleLayer}
-            onToggleAll={toggleAllLayers}
-            onToggleVWorld={toggleVWorldLayer}
-            onToggleAllVWorld={toggleAllVWorldLayers}
-          />
+          <button
+            className="mobileLayerToggle"
+            type="button"
+            onClick={() => setMobileLayersOpen((prev) => !prev)}
+          >
+            {mobileLayersOpen ? '레이어 닫기' : '레이어'}
+          </button>
+
+          <div className={`layerPanelShell ${mobileLayersOpen ? 'isOpen' : ''}`}>
+            <LayerPanel
+              visibleLayers={visibleLayers}
+              visibleVWorldLayers={visibleVWorldLayers}
+              vworldEnabled={Boolean(vworldKey)}
+              onToggle={toggleLayer}
+              onToggleAll={toggleAllLayers}
+              onToggleVWorld={toggleVWorldLayer}
+              onToggleAllVWorld={toggleAllVWorldLayers}
+            />
+          </div>
 
           <SpotMap
             spots={filteredSpots}
@@ -480,16 +568,20 @@ export default function App() {
         </div>
       </main>
 
-      <SpotDetail
-        spot={selectedSpot}
-        matchedZones={matchedZones}
-        savedStatuses={selectedSpot ? savedStatus[selectedSpot.id] ?? [] : []}
-        onToggleSavedStatus={(status) =>
-          selectedSpot && toggleSavedStatus(selectedSpot.id, status)
-        }
-        onClose={clearSelectedSpot}
-        onReviewClick={() => setReviewOpen(true)}
-      />
+      <div className={`spotDetailShell ${selectedSpot ? 'isOpen' : ''}`}>
+        <div className="mobileSheetHandle" />
+
+        <SpotDetail
+          spot={selectedSpot}
+          matchedZones={matchedZones}
+          savedStatuses={selectedSpot ? savedStatus[selectedSpot.id] ?? [] : []}
+          onToggleSavedStatus={(status) =>
+            selectedSpot && toggleSavedStatus(selectedSpot.id, status)
+          }
+          onClose={clearSelectedSpot}
+          onReviewClick={() => setReviewOpen(true)}
+        />
+      </div>
 
       <AddSpotModal
         open={addOpen}
