@@ -5,3 +5,84 @@
 .zoomNotice{position:absolute;z-index:460;left:320px;top:14px;background:rgba(255,255,255,.94);border:1px solid #d8dde6;border-radius:999px;box-shadow:0 14px 36px rgba(0,0,0,.12);padding:9px 13px;color:#344054;font-size:12px;font-weight:800}.locationControl{margin:12px!important;z-index:700}.locationControl button{display:inline-flex;align-items:center;gap:7px;border:1px solid #d8dde6;background:#fff;color:#172033;border-radius:999px;min-height:38px;padding:0 12px;font-weight:900;box-shadow:0 10px 28px rgba(0,0,0,.16)}.locationControl button:hover{background:#f8fafc}.currentLocationDot{width:28px;height:28px;border-radius:999px;background:rgba(37,99,235,.18);display:grid;place-items:center;border:1px solid rgba(37,99,235,.32)}.currentLocationDot span{width:13px;height:13px;border-radius:999px;background:#2563eb;border:3px solid #fff;box-shadow:0 4px 14px rgba(37,99,235,.4)}.officialCheckBox{background:#eef6ff;border:1px solid #b6dcff;border-radius:16px;padding:14px;margin:0 0 16px}.officialCheckBox strong{color:#15518a}.officialCheckBox p{margin:6px 0 0;color:#15518a;font-size:13px;line-height:1.55}.coordinateBox{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f7f9fb;border:1px solid #edf0f4;border-radius:15px;padding:11px 12px}.coordinateBox code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;color:#172033;font-size:13px}@media(max-width:760px){.zoomNotice{left:10px;right:10px;top:248px;border-radius:14px;line-height:1.4}.locationControl button span{display:none}}
 .emptyList{border:1px dashed #d8dde6;border-radius:16px;padding:18px;color:#667085;font-size:13px;line-height:1.5;background:#fafbfc}.savedMiniTags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}.savedMiniTags span{background:#e7f5ff;color:#1864ab;border-radius:999px;padding:4px 7px;font-size:11px;font-weight:800}.saveButtonRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 16px}.saveButton{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #d8dde6;background:#fff;color:#344054;border-radius:12px;min-height:38px;font-size:12px;font-weight:900}.saveButton.active{background:#172033;color:#fff;border-color:#172033}.checklistToggle{margin-top:11px;border:1px solid #b6dcff;background:#fff;color:#15518a;border-radius:10px;padding:8px 10px;font-weight:900}.checklist{display:grid;gap:8px;margin-top:12px}.checklist label{display:flex;align-items:flex-start;gap:8px;background:#fff;border:1px solid #d9ecff;border-radius:11px;padding:9px;font-size:12px;line-height:1.45;color:#15518a;font-weight:700}.checklist input{margin-top:2px}.richStats{grid-template-columns:1fr 1fr}.pointTags{margin:0}.pointTags span{background:#edf2ff;color:#364fc7}.cautionList{display:grid;gap:8px}.cautionList span{background:#fff5f5;border:1px solid #ffc9c9;color:#c92a2a;border-radius:12px;padding:9px 10px;font-size:13px;font-weight:800;line-height:1.45}.actionRow.compact{margin-bottom:8px}.actionRow.compact .outlineButton{min-height:38px;font-size:13px}.modal .twoCols+label{margin-top:14px}@media(max-width:760px){.saveButtonRow{grid-template-columns:1fr 1fr}.richStats{grid-template-columns:1fr}}
 .seoIntro{margin-top:18px;background:#f7f9fb;border:1px solid #edf0f4;border-radius:16px;padding:13px 14px;color:#344054}.seoIntro strong{display:block;color:#172033;font-size:13px;margin-bottom:5px}.seoIntro p{margin:0;font-size:12px;line-height:1.55;color:#667085}
+.floatingAuth {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 1200;
+  width: 280px;
+}
+
+.authBox {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dbe3ef;
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+}
+
+.authUser {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.authLabel {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.authForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.authForm input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.authForm input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.primaryButton,
+.secondaryButton {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primaryButton {
+  background: #0f172a;
+  color: white;
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  background: #eef2f7;
+  color: #0f172a;
+}
+
+.authMessage {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.4;
+}

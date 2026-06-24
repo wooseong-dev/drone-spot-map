@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { User } from '@supabase/supabase-js';
+
 import { initialSpots } from './data/initialSpots';
 import { airspaceZones } from './data/airspaceZones';
 import { vworldLayers, VWorldLayerType } from './data/vworldLayers';
+
 import { Review, SavedStatus, Spot, SpotCategory, ZoneType } from './types';
+
 import Sidebar from './components/Sidebar';
 import SpotMap from './components/SpotMap';
 import SpotDetail from './components/SpotDetail';
@@ -10,9 +14,16 @@ import AddSpotModal from './components/AddSpotModal';
 import ReviewModal from './components/ReviewModal';
 import Disclaimer from './components/Disclaimer';
 import LayerPanel from './components/LayerPanel';
+import AuthButton from './components/AuthButton';
+
 import { zonesForPoint } from './utils';
 import { getSpotIdFromPath, spotPath, updateSeo } from './seo';
 import { supabase } from './lib/supabase';
+import {
+  addUserBookmark,
+  fetchUserBookmarks,
+  removeUserBookmark,
+} from './services/bookmarks';
 
 const STORAGE_KEY = 'drone-spot-map-spots-v7';
 const PREVIOUS_STORAGE_KEY = 'drone-spot-map-spots-v6';
@@ -99,6 +110,7 @@ export type QuickFilter =
 
 export default function App() {
   const [spots, setSpots] = useState<Spot[]>(loadSpots);
+  const [user, setUser] = useState<User | null>(null);
 
   const initialSpotId = getSpotIdFromPath(window.location.pathname);
 
@@ -124,10 +136,6 @@ export default function App() {
   const [visibleVWorldLayers, setVisibleVWorldLayers] =
     useState<Record<VWorldLayerType, boolean>>(defaultVWorldLayers);
 
-  /**
-   * Supabase에서 approved 상태의 스팟을 불러온다.
-   * 실패하면 기존 localStorage / initialSpots 기반 화면을 그대로 유지한다.
-   */
   useEffect(() => {
     let ignore = false;
 
@@ -173,8 +181,38 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    saveSavedStatus(savedStatus);
-  }, [savedStatus]);
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user ?? null);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    async function loadBookmarks() {
+      if (!user) {
+        setSavedStatus(loadSavedStatus());
+        return;
+      }
+
+      const remoteBookmarks = await fetchUserBookmarks(user.id);
+      setSavedStatus(remoteBookmarks);
+    }
+
+    loadBookmarks();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      saveSavedStatus(savedStatus);
+    }
+  }, [savedStatus, user]);
 
   useEffect(() => {
     function handlePopState() {
@@ -361,16 +399,37 @@ export default function App() {
     );
   }
 
-  function toggleSavedStatus(spotId: string, status: SavedStatus) {
-    setSavedStatus((prev) => {
-      const current = prev[spotId] ?? [];
+  async function toggleSavedStatus(spotId: string, status: SavedStatus) {
+    const current = savedStatus[spotId] ?? [];
+    const alreadySaved = current.includes(status);
 
-      const nextForSpot = current.includes(status)
-        ? current.filter((item) => item !== status)
-        : [...current, status];
+    const nextForSpot = alreadySaved
+      ? current.filter((item) => item !== status)
+      : [...current, status];
 
-      return { ...prev, [spotId]: nextForSpot };
-    });
+    setSavedStatus((prev) => ({
+      ...prev,
+      [spotId]: nextForSpot,
+    }));
+
+    if (!user) {
+      return;
+    }
+
+    try {
+      if (alreadySaved) {
+        await removeUserBookmark(user.id, spotId, status);
+      } else {
+        await addUserBookmark(user.id, spotId, status);
+      }
+    } catch (error) {
+      console.error('[Supabase] Bookmark sync failed:', error);
+
+      setSavedStatus((prev) => ({
+        ...prev,
+        [spotId]: current,
+      }));
+    }
   }
 
   return (
@@ -388,6 +447,10 @@ export default function App() {
         onSelectSpot={selectSpot}
         onAddClick={() => setAddOpen(true)}
       />
+
+      <div className="floatingAuth">
+        <AuthButton user={user} />
+      </div>
 
       <main className="main">
         <Disclaimer />
