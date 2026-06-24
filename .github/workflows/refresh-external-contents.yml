@@ -1,0 +1,19 @@
+name: Refresh external contents
+
+on:
+  schedule:
+    # KST 04:10
+    - cron: "10 19 * * *"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Refresh external content previews
+        run: |
+          curl -fsS -X POST "${{ secrets.SUPABASE_REFRESH_EXTERNAL_CONTENTS_URL }}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --data '{"limit": 50}'

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Bookmark, Check, CloudSun, Copy, ExternalLink, Heart, MapPinned, MessageCircle, Navigation, Star, ThumbsDown, X } from 'lucide-react';
 import { AirspaceZone, SavedStatus, Spot } from '../types';
 import { averageRating, categoryLabel, cautionLabel, crowdLevelLabel, difficultyLabel, parkingLabel, takeoffSpaceLabel, zoneLabel } from '../utils';
+import ExternalContentSection from './ExternalContentSection';
 
 interface SpotDetailProps {
   spot?: Spot;
@@ -36,7 +37,7 @@ export default function SpotDetail({ spot, matchedZones, savedStatuses, onToggle
   const [checkedItems, setCheckedItems] = useState<string[]>([]);
 
   if (!spot) {
-    return <section className="detail empty"><MapPinned size={32}/><h2>스팟을 선택해봐</h2><p>지도 마커나 왼쪽 목록을 누르면 촬영 포인트 정보가 나와.</p></section>;
+    return <section className="detail empty"><MapPinned size={32}/><h2>스팟을 선택해주세요</h2><p>지도 마커나 왼쪽 목록을 누르면 촬영 포인트 정보가 나옵니다.</p></section>;
   }
 
   const avg = averageRating(spot.reviews.map((review) => review.rating));
@@ -141,7 +142,7 @@ export default function SpotDetail({ spot, matchedZones, savedStatuses, onToggle
           <a className="outlineButton" href={kakaoMapUrl} target="_blank" rel="noreferrer"><Navigation size={17}/>카카오맵</a>
           <a className="outlineButton" href={naverMapUrl} target="_blank" rel="noreferrer"><Navigation size={17}/>네이버지도</a>
         </div>
-
+        <ExternalContentSection spot={spot} />
         <div className="reviewHeader"><h3>후기</h3><button className="textButton" onClick={onReviewClick}><MessageCircle size={16}/>후기 쓰기</button></div>
         <div className="reviews">
           {spot.reviews.length === 0 && <p className="emptyReview">아직 후기가 없어. 첫 후기를 남겨봐.</p>}
