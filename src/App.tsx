@@ -15,15 +15,23 @@ import ReviewModal from './components/ReviewModal';
 import Disclaimer from './components/Disclaimer';
 import LayerPanel from './components/LayerPanel';
 import AuthButton from './components/AuthButton';
+import AdminRequestsPanel from './components/AdminRequestsPanel';
 
 import { zonesForPoint } from './utils';
 import { getSpotIdFromPath, spotPath, updateSeo } from './seo';
 import { supabase } from './lib/supabase';
+
 import {
   addUserBookmark,
   fetchUserBookmarks,
   removeUserBookmark,
 } from './services/bookmarks';
+
+import {
+  createApprovedSpot,
+  createSpotRequest,
+  fetchIsAdmin,
+} from './services/spotSubmissions';
 
 const STORAGE_KEY = 'drone-spot-map-spots-v7';
 const PREVIOUS_STORAGE_KEY = 'drone-spot-map-spots-v6';
@@ -111,6 +119,7 @@ export type QuickFilter =
 export default function App() {
   const [spots, setSpots] = useState<Spot[]>(loadSpots);
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileLayersOpen, setMobileLayersOpen] = useState(false);
@@ -139,44 +148,47 @@ export default function App() {
   const [visibleVWorldLayers, setVisibleVWorldLayers] =
     useState<Record<VWorldLayerType, boolean>>(defaultVWorldLayers);
 
+  async function reloadSpotsFromSupabase() {
+    const { data, error } = await supabase
+      .from('spots')
+      .select('*')
+      .eq('status', 'approved')
+      .order('createdAt', { ascending: false });
+
+    if (error) {
+      console.error('[Supabase] Failed to reload spots:', error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn('[Supabase] No approved spots found. Fallback data remains active.');
+      return;
+    }
+
+    const nextSpots = (data as Spot[]).map(normalizeSpot);
+
+    console.log('[Supabase] Loaded spots:', nextSpots);
+
+    setSpots(nextSpots);
+
+    const pathSpotId = getSpotIdFromPath(window.location.pathname);
+
+    setSelectedSpotId(
+      nextSpots.some((spot) => spot.id === pathSpotId)
+        ? pathSpotId
+        : nextSpots[0]?.id
+    );
+  }
+
   useEffect(() => {
     let ignore = false;
 
-    async function loadSpotsFromSupabase() {
-      const { data, error } = await supabase
-        .from('spots')
-        .select('*')
-        .eq('status', 'approved')
-        .order('createdAt', { ascending: false });
-
-      if (error) {
-        console.error('[Supabase] Failed to load spots:', error);
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        console.warn('[Supabase] No approved spots found. Fallback data remains active.');
-        return;
-      }
-
-      const nextSpots = (data as Spot[]).map(normalizeSpot);
-
-      console.log('[Supabase] Loaded spots:', nextSpots);
-
+    async function load() {
       if (ignore) return;
-
-      setSpots(nextSpots);
-
-      const pathSpotId = getSpotIdFromPath(window.location.pathname);
-
-      setSelectedSpotId(
-        nextSpots.some((spot) => spot.id === pathSpotId)
-          ? pathSpotId
-          : nextSpots[0]?.id
-      );
+      await reloadSpotsFromSupabase();
     }
 
-    loadSpotsFromSupabase();
+    load();
 
     return () => {
       ignore = true;
@@ -196,6 +208,24 @@ export default function App() {
       listener.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function checkAdmin() {
+      const nextIsAdmin = await fetchIsAdmin(user);
+
+      if (!ignore) {
+        setIsAdmin(nextIsAdmin);
+      }
+    }
+
+    checkAdmin();
+
+    return () => {
+      ignore = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     async function loadBookmarks() {
@@ -351,11 +381,29 @@ export default function App() {
     saveSpots(next);
   }
 
-  function handleAddSpot(spot: Spot) {
-    const next = [normalizeSpot(spot), ...spots];
+  async function handleAddSpot(spot: Spot) {
+    if (!user) {
+      alert('로그인 후 스팟을 제보할 수 있습니다.');
+      return;
+    }
 
-    updateSpots(next);
-    selectSpot(spot);
+    const normalizedSpot = normalizeSpot(spot);
+
+    if (isAdmin) {
+      const createdSpot = await createApprovedSpot(normalizedSpot);
+      const nextSpot = normalizeSpot(createdSpot);
+
+      const next = [nextSpot, ...spots.filter((item) => item.id !== nextSpot.id)];
+
+      updateSpots(next);
+      selectSpot(nextSpot);
+      setDraftCoords(undefined);
+      setMobileSidebarOpen(false);
+      return;
+    }
+
+    await createSpotRequest(normalizedSpot, user);
+
     setDraftCoords(undefined);
     setMobileSidebarOpen(false);
   }
@@ -583,11 +631,18 @@ export default function App() {
         />
       </div>
 
+      <AdminRequestsPanel
+        isAdmin={isAdmin}
+        onChanged={reloadSpotsFromSupabase}
+      />
+
       <AddSpotModal
         open={addOpen}
         onClose={closeAddModal}
         onAdd={handleAddSpot}
         initialCoords={draftCoords}
+        isAdmin={isAdmin}
+        isLoggedIn={Boolean(user)}
       />
 
       <ReviewModal

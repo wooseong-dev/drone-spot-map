@@ -1,10 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-export type ExternalContentSource =
-  | 'naver_blog'
-  | 'tistory'
-  | 'web'
-  | 'youtube';
+export type ExternalContentSource = 'naver_blog' | 'tistory' | 'web' | 'youtube';
 
 export type ExternalContent = {
   id: string;
@@ -17,43 +13,31 @@ export type ExternalContent = {
   thumbnail_url: string | null;
   published_at: string | null;
   query: string | null;
-  relevance_score: number | null;
-  status: string;
+  relevance_score: number;
+  status: 'visible' | 'hidden' | 'rejected';
+  is_owner_content: boolean;
+  display_priority: number;
+  owner_label: string | null;
   created_at: string;
+  updated_at: string;
 };
 
 export async function fetchExternalContents(spotId: string) {
   const { data, error } = await supabase
     .from('external_contents')
-    .select(
-      'id, spot_id, source, title, url, description, author, thumbnail_url, published_at, query, relevance_score, status, created_at'
-    )
+    .select('*')
     .eq('spot_id', spotId)
     .eq('status', 'visible')
-    .order('source', { ascending: true })
+    .order('display_priority', { ascending: false })
+    .order('is_owner_content', { ascending: false })
     .order('relevance_score', { ascending: false })
+    .order('published_at', { ascending: false, nullsFirst: false })
     .limit(24);
 
   if (error) {
-    console.error('[Supabase] Failed to fetch external contents:', error);
+    console.error('[ExternalContents] fetch failed:', error);
     return [];
   }
 
   return (data ?? []) as ExternalContent[];
-}
-
-export async function refreshExternalContents(spotId: string) {
-  const { data, error } = await supabase.functions.invoke(
-    'fetch-external-content',
-    {
-      body: { spotId },
-    }
-  );
-
-  if (error) {
-    console.error('[Supabase] Failed to refresh external contents:', error);
-    throw error;
-  }
-
-  return data as { inserted: number; queries?: string[] };
 }

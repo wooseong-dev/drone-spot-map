@@ -1732,3 +1732,136 @@ button {
     height: 62px;
   }
 }
+.formNotice {
+  border-radius: 14px;
+  padding: 11px 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 12px 0;
+}
+
+.formNotice.warning {
+  background: #fff5f5;
+  border: 1px solid #ffc9c9;
+  color: #c92a2a;
+}
+
+.ownerContentBadge {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border-radius: 999px;
+  padding: 3px 7px;
+  font-weight: 900;
+}
+
+.adminRequestsPanel {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1300;
+}
+
+.adminRequestsToggle {
+  border: 0;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  min-height: 42px;
+  padding: 0 16px;
+  font-weight: 900;
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.22);
+}
+
+.adminRequestsBox {
+  position: absolute;
+  right: 0;
+  bottom: 52px;
+  width: min(380px, calc(100vw - 28px));
+  max-height: 70vh;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+  padding: 14px;
+}
+
+.adminRequestsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.adminRequestsHeader button {
+  border: 1px solid #d8dde6;
+  background: #fff;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.adminRequestsEmpty {
+  margin: 0;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.adminRequestsList {
+  display: grid;
+  gap: 10px;
+}
+
+.adminRequestCard {
+  border: 1px solid #edf0f4;
+  background: #fafbfc;
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.adminRequestCard strong {
+  display: block;
+  color: #172033;
+  font-size: 14px;
+}
+
+.adminRequestCard p {
+  margin: 6px 0;
+  color: #475467;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.adminRequestCard small {
+  display: block;
+  color: #667085;
+  font-size: 12px;
+}
+
+.adminRequestActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.adminRequestActions .primaryButton,
+.adminRequestActions .outlineButton {
+  width: auto;
+  min-height: 34px;
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .adminRequestsPanel {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .adminRequestsBox {
+    width: calc(100vw - 24px);
+    max-height: 62vh;
+  }
+}

@@ -145,6 +145,12 @@ export default function ExternalContentSection({ spot }: ExternalContentSectionP
                   <span className={getSourceClass(item.source)}>
                     {sourceLabels[item.source]}
                   </span>
+                  {item.is_owner_content && (
+                    <span className="ownerContentBadge">
+                      {item.owner_label ?? '운영자 추천'}
+                    </span>
+                    )}
+                  
                   {item.author && <span>{item.author}</span>}
                   {formatDate(item.published_at) && (
                     <span>{formatDate(item.published_at)}</span>
