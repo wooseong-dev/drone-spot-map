@@ -1,12 +1,27 @@
-import L from 'leaflet';
-import { Circle, MapContainer, Marker, Polygon, Popup, TileLayer, WMSTileLayer, useMap, useMapEvents } from 'react-leaflet';
-import { AirspaceZone, Spot, ZoneType } from '../types';
-import { categoryLabel, cautionLabel, getCautionColor, getZoneColor, zoneLabel } from '../utils';
-import { useEffect, useState } from 'react';
-import { VWorldLayerType, vworldLayers } from '../data/vworldLayers';
-import { Crosshair } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Circle,
+  MapContainer,
+  Marker,
+  Polygon,
+  Popup,
+  TileLayer,
+  Tooltip,
+  useMap,
+  useMapEvents,
+} from 'react-leaflet';
+import L, { LatLngExpression } from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-interface SpotMapProps {
+import { AirspaceZone, Spot, ZoneType } from '../types';
+import { categoryLabel, cautionLabel, zoneLabel } from '../utils';
+import { vworldLayers, VWorldLayerType } from '../data/vworldLayers';
+import {
+  fetchSpotPostPreviews,
+  SpotPost,
+} from '../services/spotPosts';
+
+type SpotMapProps = {
   spots: Spot[];
   zones: AirspaceZone[];
   visibleLayers: Record<ZoneType, boolean>;
@@ -16,102 +31,306 @@ interface SpotMapProps {
   selectedSpot?: Spot;
   onSelectSpot: (spot: Spot) => void;
   onMapContextAdd: (lat: number, lng: number) => void;
-}
+};
 
-const MIN_VWORLD_ZOOM = 10;
+type FlexibleZone = AirspaceZone & {
+  lat?: number;
+  lng?: number;
+  radius?: number;
+  center?: {
+    lat: number;
+    lng: number;
+  };
+  coordinates?: Array<[number, number]> | Array<{ lat: number; lng: number }>;
+  points?: Array<[number, number]> | Array<{ lat: number; lng: number }>;
+};
 
-function createIcon(color: string) {
+type FlexibleVWorldLayer = {
+  id: VWorldLayerType;
+  name?: string;
+  label?: string;
+  title?: string;
+  layer?: string;
+  layerName?: string;
+  code?: string;
+  tileUrl?: string;
+  url?: string;
+};
+
+const DEFAULT_CENTER: LatLngExpression = [37.5665, 126.978];
+const DEFAULT_ZOOM = 9;
+
+const DEFAULT_VWORLD_LAYER_NAMES: Record<VWorldLayerType, string> = {
+  noFly: 'LT_C_AISPRHC',
+  restricted: 'LT_C_AISRESC',
+  control: 'LT_C_AISCTRC',
+  military: 'LT_C_AISMOA',
+  danger: 'LT_C_AISDNGC',
+  droneZone: 'LT_C_DRONEZONE',
+};
+
+const zoneColors: Record<ZoneType, string> = {
+  noFly: '#ef4444',
+  restricted: '#f97316',
+  control: '#3b82f6',
+  danger: '#a855f7',
+  nationalPark: '#22c55e',
+  heritage: '#b45309',
+};
+
+function createSpotIcon(_spot: Spot, selected: boolean) {
+  const size = selected ? 26 : 22;
+  const color = selected ? '#111827' : '#f59e0b';
+  const shadow = selected
+    ? '0 0 0 5px rgba(17, 24, 39, 0.18), 0 10px 28px rgba(15, 23, 42, 0.35)'
+    : '0 8px 24px rgba(15, 23, 42, 0.28)';
+
   return L.divIcon({
-    className: 'customMarker',
-    html: `<div style="background:${color}" class="markerDot"></div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    className: 'droneSpotMarkerShell',
+    html: `
+      <div
+        style="
+          width: ${size}px;
+          height: ${size}px;
+          border-radius: 999px;
+          background: ${color};
+          border: 4px solid #ffffff;
+          box-shadow: ${shadow};
+          box-sizing: border-box;
+        "
+      ></div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
   });
 }
 
 const currentLocationIcon = L.divIcon({
-  className: 'currentLocationMarker',
-  html: '<div class="currentLocationDot"><span></span></div>',
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
+  className: 'currentLocationMarkerShell',
+  html: `
+    <div
+      style="
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: #2563eb;
+        border: 4px solid #ffffff;
+        box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.18), 0 10px 28px rgba(15, 23, 42, 0.28);
+        box-sizing: border-box;
+      "
+    ></div>
+  `,
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
 });
 
-function MapContextAdd({ onMapContextAdd }: { onMapContextAdd: (lat: number, lng: number) => void }) {
-  useMapEvents({
-    contextmenu(event) {
-      onMapContextAdd(Number(event.latlng.lat.toFixed(6)), Number(event.latlng.lng.toFixed(6)));
-    },
-  });
+function getVWorldLayerLabel(layer: FlexibleVWorldLayer) {
+  return layer.name ?? layer.label ?? layer.title ?? layer.id;
+}
+
+function buildVWorldTileUrl(
+  layer: FlexibleVWorldLayer,
+  vworldKey: string,
+  vworldDomain?: string
+) {
+  const rawUrl = layer.tileUrl ?? layer.url;
+
+  if (rawUrl) {
+    return rawUrl
+  .split('{key}')
+  .join(vworldKey)
+  .split('{apiKey}')
+  .join(vworldKey)
+  .split('{domain}')
+  .join(vworldDomain ?? '');
+  }
+
+  const layerName =
+    layer.layer ??
+    layer.layerName ??
+    layer.code ??
+    DEFAULT_VWORLD_LAYER_NAMES[layer.id];
+
+  return `https://api.vworld.kr/req/wmts/1.0.0/${vworldKey}/${layerName}/{z}/{y}/{x}.png`;
+}
+
+function getZoneCenter(zone: FlexibleZone): LatLngExpression | null {
+  if (zone.center?.lat && zone.center?.lng) {
+    return [zone.center.lat, zone.center.lng];
+  }
+
+  if (typeof zone.lat === 'number' && typeof zone.lng === 'number') {
+    return [zone.lat, zone.lng];
+  }
+
   return null;
 }
 
-function ZoomWatcher({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
-  const map = useMap();
-  useEffect(() => {
-    onZoomChange(map.getZoom());
-  }, [map, onZoomChange]);
-  useMapEvents({
-    zoomend(event) {
-      onZoomChange(event.target.getZoom());
-    },
-  });
-  return null;
+function normalizeZonePoints(
+  points?: Array<[number, number]> | Array<{ lat: number; lng: number }>
+): LatLngExpression[] {
+  if (!points || points.length === 0) return [];
+
+  return points
+    .map((point) => {
+      if (Array.isArray(point)) {
+        return [point[0], point[1]] as LatLngExpression;
+      }
+
+      return [point.lat, point.lng] as LatLngExpression;
+    })
+    .filter(Boolean);
 }
 
-function FlyToSelected({ spot }: { spot?: Spot }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!spot) return;
-    map.flyTo([spot.lat, spot.lng], 13, { duration: 0.7 });
-  }, [map, spot]);
-  return null;
-}
+function renderZone(zone: AirspaceZone) {
+  const flexibleZone = zone as FlexibleZone;
+  const color = zoneColors[zone.type] ?? '#64748b';
 
-function CurrentLocationControl() {
-  const map = useMap();
-  const [position, setPosition] = useState<[number, number] | null>(null);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const polygonPoints = normalizeZonePoints(
+    flexibleZone.coordinates ?? flexibleZone.points
+  );
 
-  function moveToCurrentLocation() {
-    if (!navigator.geolocation) {
-      setStatus('error');
-      alert('현재 위치 기능을 지원하지 않는 브라우저야.');
-      return;
-    }
-
-    setStatus('loading');
-    navigator.geolocation.getCurrentPosition(
-      (result) => {
-        const next: [number, number] = [Number(result.coords.latitude.toFixed(6)), Number(result.coords.longitude.toFixed(6))];
-        setPosition(next);
-        setStatus('idle');
-        map.flyTo(next, Math.max(map.getZoom(), 15), { duration: 0.8 });
-      },
-      () => {
-        setStatus('error');
-        alert('현재 위치를 가져오지 못했어. 브라우저 위치 권한을 허용했는지 확인해줘.');
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+  if (polygonPoints.length >= 3) {
+    return (
+      <Polygon
+        key={zone.id}
+        positions={polygonPoints}
+        pathOptions={{
+          color,
+          weight: 2,
+          opacity: 0.75,
+          fillColor: color,
+          fillOpacity: 0.12,
+        }}
+      >
+        <Tooltip sticky>
+          {zoneLabel[zone.type]} · {zone.name}
+        </Tooltip>
+      </Polygon>
     );
   }
 
+  const center = getZoneCenter(flexibleZone);
+
+  if (center && flexibleZone.radius) {
+    return (
+      <Circle
+        key={zone.id}
+        center={center}
+        radius={flexibleZone.radius}
+        pathOptions={{
+          color,
+          weight: 2,
+          opacity: 0.75,
+          fillColor: color,
+          fillOpacity: 0.12,
+        }}
+      >
+        <Tooltip sticky>
+          {zoneLabel[zone.type]} · {zone.name}
+        </Tooltip>
+      </Circle>
+    );
+  }
+
+  return null;
+}
+
+function MapContextHandler({
+  onMapContextAdd,
+}: {
+  onMapContextAdd: (lat: number, lng: number) => void;
+}) {
+  useMapEvents({
+    contextmenu(event) {
+      onMapContextAdd(event.latlng.lat, event.latlng.lng);
+    },
+  });
+
+  return null;
+}
+
+function SelectedSpotEffect({ selectedSpot }: { selectedSpot?: Spot }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!selectedSpot) return;
+
+    map.flyTo([selectedSpot.lat, selectedSpot.lng], Math.max(map.getZoom(), 12), {
+      duration: 0.65,
+    });
+  }, [map, selectedSpot?.id]);
+
+  return null;
+}
+
+function CurrentLocationControl({
+  onFound,
+}: {
+  onFound: (position: [number, number]) => void;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    function handleLocationFound(event: L.LocationEvent) {
+      const position: [number, number] = [
+        event.latlng.lat,
+        event.latlng.lng,
+      ];
+
+      onFound(position);
+      map.flyTo(position, Math.max(map.getZoom(), 13), {
+        duration: 0.65,
+      });
+    }
+
+    function handleLocationError() {
+      alert('현재 위치를 가져오지 못했습니다. 브라우저 위치 권한을 확인해주세요.');
+    }
+
+    map.on('locationfound', handleLocationFound);
+    map.on('locationerror', handleLocationError);
+
+    return () => {
+      map.off('locationfound', handleLocationFound);
+      map.off('locationerror', handleLocationError);
+    };
+  }, [map, onFound]);
+
+  function moveToCurrentLocation() {
+    map.locate({
+      enableHighAccuracy: true,
+      timeout: 8000,
+      maximumAge: 60000,
+    });
+  }
+
   return (
-    <>
-      <div className="locationControl leaflet-top leaflet-right">
-        <button type="button" onClick={moveToCurrentLocation} title="현재 위치로 이동">
-          <Crosshair size={18} />
-          <span>{status === 'loading' ? '위치 확인 중' : '현재 위치'}</span>
-        </button>
-      </div>
-      {position && (
-        <Marker position={position} icon={currentLocationIcon}>
-          <Popup>
-            <strong>내 현재 위치</strong>
-            <p>{position[0]}, {position[1]}</p>
-          </Popup>
-        </Marker>
+    <button
+      type="button"
+      className="currentLocationButton"
+      onClick={moveToCurrentLocation}
+    >
+      현재 위치
+    </button>
+  );
+}
+
+function SpotPopupPostPreview({ post }: { post?: SpotPost }) {
+  if (!post) return null;
+
+  return (
+    <div className="spotPopupPostPreview">
+      {post.image_url && (
+        <img src={post.image_url} alt="" loading="lazy" />
       )}
-    </>
+
+      <p>
+        {post.content ||
+          '이 스팟에 현장 사진이 등록되어 있습니다.'}
+      </p>
+    </div>
   );
 }
 
@@ -126,79 +345,135 @@ export default function SpotMap({
   onSelectSpot,
   onMapContextAdd,
 }: SpotMapProps) {
-  const [zoom, setZoom] = useState(9);
-  const enabledVWorldLayers = vworldLayers.filter((layer) => visibleVWorldLayers[layer.id]);
-  const hasVWorldKey = Boolean(vworldKey);
-  const shouldShowVWorldLayers = hasVWorldKey && zoom >= MIN_VWORLD_ZOOM;
-  const hasActiveVWorldLayer = enabledVWorldLayers.length > 0;
+  const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(
+    null
+  );
+
+  const [postPreviewBySpotId, setPostPreviewBySpotId] = useState<
+    Record<string, SpotPost>
+  >({});
+
+  const mapCenter = useMemo<LatLngExpression>(() => {
+    if (selectedSpot) {
+      return [selectedSpot.lat, selectedSpot.lng];
+    }
+
+    if (spots[0]) {
+      return [spots[0].lat, spots[0].lng];
+    }
+
+    return DEFAULT_CENTER;
+  }, [selectedSpot, spots]);
+
+  const spotIds = useMemo(() => spots.map((spot) => spot.id), [spots]);
+
+  const loadPostPreviews = useCallback(async () => {
+    const previews = await fetchSpotPostPreviews(spotIds);
+    setPostPreviewBySpotId(previews);
+  }, [spotIds]);
+
+  useEffect(() => {
+    loadPostPreviews();
+  }, [loadPostPreviews]);
+
+  useEffect(() => {
+    function handleSpotPostCreated() {
+      loadPostPreviews();
+    }
+
+    window.addEventListener('spot-post-created', handleSpotPostCreated);
+
+    return () => {
+      window.removeEventListener('spot-post-created', handleSpotPostCreated);
+    };
+  }, [loadPostPreviews]);
+
+  const visibleZones = useMemo(
+    () => zones.filter((zone) => visibleLayers[zone.type]),
+    [zones, visibleLayers]
+  );
+
+  const activeVWorldLayers = useMemo(
+    () =>
+      (vworldLayers as FlexibleVWorldLayer[]).filter(
+        (layer) => visibleVWorldLayers[layer.id]
+      ),
+    [visibleVWorldLayers]
+  );
 
   return (
-    <div className="mapShell">
-      {hasVWorldKey && hasActiveVWorldLayer && !shouldShowVWorldLayers && (
-        <div className="zoomNotice">
-          공역 레이어는 지도의 가독성을 위해 확대 시 표시됩니다.
-        </div>
-      )}
-      <MapContainer center={[37.47, 127.05]} zoom={9} scrollWheelZoom className="map">
-        <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
-        <ZoomWatcher onZoomChange={setZoom}/>
-        <FlyToSelected spot={selectedSpot}/>
-        <MapContextAdd onMapContextAdd={onMapContextAdd}/>
-        <CurrentLocationControl/>
+    <MapContainer
+      className="map"
+      center={mapCenter}
+      zoom={selectedSpot ? 12 : DEFAULT_ZOOM}
+      scrollWheelZoom
+      doubleClickZoom
+      preferCanvas
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
 
-        {zones.filter((z)=>visibleLayers[z.type]).map((zone) => {
-          const color = getZoneColor(zone.type);
-          if (zone.radiusKm) {
-            return (
-              <Circle key={zone.id} center={zone.center} radius={zone.radiusKm * 1000}
-                pathOptions={{ color, fillColor: color, fillOpacity: 0.12, weight: 2, dashArray: '6 6' }}>
-                <Popup><strong>{zone.name}</strong><p>{zoneLabel[zone.type]}</p><p>{zone.description}</p></Popup>
-              </Circle>
-            );
-          }
-          if (zone.polygon) {
-            return (
-              <Polygon key={zone.id} positions={zone.polygon}
-                pathOptions={{ color, fillColor: color, fillOpacity: 0.13, weight: 2, dashArray: '8 6' }}>
-                <Popup><strong>{zone.name}</strong><p>{zoneLabel[zone.type]}</p><p>{zone.description}</p></Popup>
-              </Polygon>
-            );
-          }
-          return null;
-        })}
-
-        {shouldShowVWorldLayers && enabledVWorldLayers.map((layer) => (
-          <WMSTileLayer
+      {vworldKey &&
+        activeVWorldLayers.map((layer, index) => (
+          <TileLayer
             key={layer.id}
-            url="https://api.vworld.kr/req/wms"
-            layers={layer.layerName}
-            styles={layer.layerName}
-            format="image/png"
-            transparent
-            version="1.3.0"
-            params={{
-              key: vworldKey,
-              domain: vworldDomain || window.location.origin,
-              tiled: true,
-              exceptions: 'text/xml',
-            } as any}
-            opacity={0.62}
+            url={buildVWorldTileUrl(layer, vworldKey, vworldDomain)}
+            opacity={0.58}
+            zIndex={430 + index}
+            attribution="VWorld"
           />
         ))}
 
-        {spots.map((spot) => (
-          <Marker key={spot.id} position={[spot.lat, spot.lng]} icon={createIcon(getCautionColor(spot.cautionLevel))}
-            eventHandlers={{ click: () => onSelectSpot(spot) }}>
+      {visibleZones.map((zone) => renderZone(zone))}
+
+      {spots.map((spot) => {
+        const isSelected = selectedSpot?.id === spot.id;
+        const postPreview = postPreviewBySpotId[spot.id];
+
+        return (
+          <Marker
+            key={spot.id}
+            position={[spot.lat, spot.lng]}
+            icon={createSpotIcon(spot, isSelected)}
+            eventHandlers={{
+              click: () => onSelectSpot(spot),
+            }}
+          >
             <Popup>
-              <div className="popup">
+              <div className="spotPopup">
                 <strong>{spot.name}</strong>
-                <p>{categoryLabel[spot.category]} · {cautionLabel[spot.cautionLevel]}</p>
-                <button onClick={() => onSelectSpot(spot)}>상세 보기</button>
+
+                <p>
+                  {categoryLabel[spot.category]} · {cautionLabel[spot.cautionLevel]}
+                </p>
+
+                <SpotPopupPostPreview post={postPreview} />
+
+                <button type="button" onClick={() => onSelectSpot(spot)}>
+                  상세 보기
+                </button>
               </div>
             </Popup>
           </Marker>
-        ))}
-      </MapContainer>
-    </div>
+        );
+      })}
+
+      {currentPosition && (
+        <Marker position={currentPosition} icon={currentLocationIcon}>
+          <Popup>
+            <div className="spotPopup">
+              <strong>현재 위치</strong>
+              <p>브라우저에서 확인한 현재 위치입니다.</p>
+            </div>
+          </Popup>
+        </Marker>
+      )}
+
+      <CurrentLocationControl onFound={setCurrentPosition} />
+      <SelectedSpotEffect selectedSpot={selectedSpot} />
+      <MapContextHandler onMapContextAdd={onMapContextAdd} />
+    </MapContainer>
   );
 }

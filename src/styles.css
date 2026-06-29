@@ -2000,3 +2000,363 @@ button {
     max-height: 62vh;
   }
 }
+.spotPostsSection {
+  border-top: 1px solid #edf0f4;
+  padding: 22px 24px 28px;
+  background: #ffffff;
+}
+
+.spotPostsHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.spotPostsHeader h3 {
+  margin: 0 0 5px;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+.spotPostsHeader p {
+  margin: 0;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.spotPostsHeader button {
+  border: 1px solid #d8dde6;
+  background: #fff;
+  color: #172033;
+  border-radius: 11px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.spotPostForm {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #e4eaf2;
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.spotPostLoginNotice {
+  border: 1px solid #d7e7ff;
+  background: #eff7ff;
+  color: #1d4f91;
+  border-radius: 13px;
+  padding: 10px 11px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.spotPostForm textarea {
+  width: 100%;
+  min-height: 78px;
+  border: 1px solid #d8dde6;
+  background: #ffffff;
+  color: #172033;
+  border-radius: 14px;
+  padding: 11px 12px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.spotPostForm textarea:disabled {
+  background: #f1f4f8;
+  color: #98a2b3;
+}
+
+.spotPostFormBottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spotPhotoPicker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  max-width: 180px;
+  border: 1px solid #d8dde6;
+  background: #ffffff;
+  color: #172033;
+  border-radius: 12px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.spotPhotoPicker input {
+  display: none;
+}
+
+.spotPhotoPicker span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.spotPostLimit {
+  margin-left: auto;
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.spotPostFormBottom .primaryButton {
+  width: auto;
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.spotPostPreview {
+  display: grid;
+  gap: 8px;
+}
+
+.spotPostPreview img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid #e4eaf2;
+}
+
+.spotPostPreview button {
+  justify-self: start;
+  border: 1px solid #d8dde6;
+  background: #fff;
+  color: #172033;
+  border-radius: 11px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.spotPostsEmpty {
+  border: 1px dashed #d8dde6;
+  background: #fafbfc;
+  color: #667085;
+  border-radius: 16px;
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.spotPostsList {
+  display: grid;
+  gap: 12px;
+}
+
+.spotPostCard {
+  overflow: hidden;
+  border: 1px solid #e4eaf2;
+  background: #ffffff;
+  border-radius: 18px;
+}
+
+.spotPostImage {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  background: #f1f4f8;
+}
+
+.spotPostBody {
+  padding: 12px;
+}
+
+.spotPostMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.spotPostMeta strong {
+  color: #172033;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.spotPostMeta span {
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.spotPostBody p {
+  margin: 0;
+  color: #344054;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+@media (max-width: 760px) {
+  .spotPostsSection {
+    padding: 18px 16px 24px;
+  }
+
+  .spotPostsHeader {
+    display: grid;
+  }
+
+  .spotPostFormBottom {
+    flex-wrap: wrap;
+  }
+
+  .spotPostLimit {
+    margin-left: 0;
+  }
+
+  .spotPostFormBottom .primaryButton {
+    margin-left: auto;
+  }
+}
+.spotDetailShell {
+  overflow-y: auto;
+}
+
+.spotDetailContentStack {
+  display: block;
+  min-height: 100%;
+}
+
+.spotDetailContentStack .spotPostsSection {
+  display: block;
+  position: relative;
+  z-index: 2;
+}
+.detailBody .spotPostsSection {
+  margin: 24px -24px -28px;
+  border-top: 1px solid #edf0f4;
+}
+.spotPopupPostPreview {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 4px;
+  padding: 8px;
+  border: 1px solid #e4eaf2;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.spotPopupPostPreview img {
+  display: block;
+  width: 100%;
+  max-height: 110px;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #eef2f7;
+}
+
+.spotPopupPostPreview p {
+  margin: 0;
+  color: #344054;
+  font-size: 12px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.spotPopupPostPreview {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 4px;
+  padding: 8px;
+  border: 1px solid #e4eaf2;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.spotPopupPostPreview img {
+  display: block;
+  width: 100%;
+  max-height: 110px;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #eef2f7;
+}
+
+.spotPopupPostPreview p {
+  margin: 0;
+  color: #344054;
+  font-size: 12px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.spotMarkerIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #f59e0b;
+  border: 3px solid #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.3);
+}
+
+.spotMarkerIcon span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.spotMarkerIcon.isSelected {
+  background: #111827;
+  transform: scale(1.15);
+}
+
+.currentLocationMarkerIcon {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #2563eb;
+  border: 4px solid #ffffff;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.18),
+    0 10px 28px rgba(15, 23, 42, 0.28);
+}
+
+.currentLocationButton {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 900;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #172033;
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+  cursor: pointer;
+}
+.droneSpotMarkerShell,
+.currentLocationMarkerShell {
+  background: transparent !important;
+  border: 0 !important;
+}
