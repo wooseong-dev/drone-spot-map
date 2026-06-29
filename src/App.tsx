@@ -6,7 +6,6 @@ import { airspaceZones } from './data/airspaceZones';
 import { vworldLayers, VWorldLayerType } from './data/vworldLayers';
 
 import { Review, SavedStatus, Spot, SpotCategory, ZoneType } from './types';
-
 import Sidebar from './components/Sidebar';
 import SpotMap from './components/SpotMap';
 import SpotDetail from './components/SpotDetail';
@@ -617,19 +616,22 @@ export default function App() {
       </main>
 
       <div className={`spotDetailShell ${selectedSpot ? 'isOpen' : ''}`}>
-        <div className="mobileSheetHandle" />
+  <div className="mobileSheetHandle" />
 
-        <SpotDetail
-          spot={selectedSpot}
-          matchedZones={matchedZones}
-          savedStatuses={selectedSpot ? savedStatus[selectedSpot.id] ?? [] : []}
-          onToggleSavedStatus={(status) =>
-            selectedSpot && toggleSavedStatus(selectedSpot.id, status)
-          }
-          onClose={clearSelectedSpot}
-          onReviewClick={() => setReviewOpen(true)}
-        />
-      </div>
+  <div className="spotDetailContentStack">
+    <SpotDetail
+  spot={selectedSpot}
+  matchedZones={matchedZones}
+  savedStatuses={selectedSpot ? savedStatus[selectedSpot.id] ?? [] : []}
+  user={user}
+  onToggleSavedStatus={(status) =>
+    selectedSpot && toggleSavedStatus(selectedSpot.id, status)
+  }
+  onClose={clearSelectedSpot}
+  onReviewClick={() => setReviewOpen(true)}
+/>
+  </div>
+</div>
 
       <AdminRequestsPanel
         isAdmin={isAdmin}
