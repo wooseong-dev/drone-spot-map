@@ -6,54 +6,99 @@ type AuthButtonProps = {
   user: User | null;
 };
 
+function getRedirectTo() {
+  return window.location.origin;
+}
+
 export default function AuthButton({ user }: AuthButtonProps) {
   const [email, setEmail] = useState('');
   const [open, setOpen] = useState(false);
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<'kakao' | null>(null);
 
-  async function handleLogin(event: FormEvent) {
-    event.preventDefault();
+  async function signInWithKakao() {
+    try {
+      setOauthLoading('kakao');
 
-    if (!email.trim()) {
-      setMessage('이메일을 입력해주세요.');
-      return;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'kakao',
+        options: {
+          redirectTo: getRedirectTo(),
+
+          // 중요:
+          // account_email 권한이 없으므로 이메일을 요청하지 않는다.
+          // 카카오 동의항목에 설정된 nickname/profile image만 요청한다.
+          scopes: 'profile_nickname profile_image',
+
+          // Kakao 쪽은 comma-separated scope를 쓰는 경우가 있어
+          // 확실하게 queryParams로도 한 번 더 제한한다.
+          queryParams: {
+            scope: 'profile_nickname,profile_image',
+          },
+        },
+      });
+
+      if (error) {
+        console.error('[Auth] Kakao login failed:', error);
+        alert('카카오 로그인 중 문제가 발생했습니다.');
+      }
+    } finally {
+      setOauthLoading(null);
     }
-
-    setLoading(true);
-    setMessage('');
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
-    });
-
-    setLoading(false);
-
-    if (error) {
-      console.error('[Supabase] Login error:', error);
-      setMessage('로그인 메일을 보내지 못했습니다. 잠시 후 다시 시도해주세요.');
-      return;
-    }
-
-    setMessage('로그인 링크를 이메일로 보냈습니다. 메일함을 확인해주세요.');
   }
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    setOpen(false);
+  async function sendMagicLink(e: FormEvent) {
+    e.preventDefault();
+
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      alert('이메일을 입력해주세요.');
+      return;
+    }
+
+    try {
+      setSending(true);
+
+      const { error } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options: {
+          emailRedirectTo: getRedirectTo(),
+        },
+      });
+
+      if (error) {
+        console.error('[Auth] Magic link failed:', error);
+        alert('로그인 메일 발송 중 문제가 발생했습니다.');
+        return;
+      }
+
+      alert('로그인 링크를 이메일로 보냈습니다.');
+      setEmail('');
+      setOpen(false);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function signOut() {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error('[Auth] Sign out failed:', error);
+      alert('로그아웃 중 문제가 발생했습니다.');
+    }
   }
 
   if (user) {
     return (
       <div className="authBox">
-        <div className="authUser">
-          <span className="authLabel">로그인 상태</span>
-          <strong>{user.email}</strong>
+        <div className="authStatus">
+          <span>로그인 상태</span>
+          <strong>{user.email ?? '카카오 로그인 사용자'}</strong>
         </div>
-        <button className="secondaryButton" type="button" onClick={handleLogout}>
+
+        <button type="button" className="authLogoutButton" onClick={signOut}>
           로그아웃
         </button>
       </div>
@@ -62,34 +107,41 @@ export default function AuthButton({ user }: AuthButtonProps) {
 
   return (
     <div className="authBox">
-      {!open ? (
-        <button className="primaryButton" type="button" onClick={() => setOpen(true)}>
-          로그인하고 장소 저장하기
-        </button>
-      ) : (
-        <form className="authForm" onSubmit={handleLogin}>
+      <button
+        type="button"
+        className="kakaoLoginButton"
+        onClick={signInWithKakao}
+        disabled={oauthLoading === 'kakao'}
+      >
+        {oauthLoading === 'kakao' ? '카카오 연결 중' : '카카오로 시작하기'}
+      </button>
+
+      <button
+        type="button"
+        className="authEmailToggle"
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        이메일로 로그인
+      </button>
+
+      {open && (
+        <form className="authEmailForm" onSubmit={sendMagicLink}>
           <input
-            type="email"
-            placeholder="이메일을 입력해주세요"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="이메일 주소"
+            type="email"
           />
-          <button className="primaryButton" type="submit" disabled={loading}>
-            {loading ? '메일 발송 중...' : '로그인 링크 받기'}
+
+          <button type="submit" disabled={sending}>
+            {sending ? '발송 중' : '로그인 링크 받기'}
           </button>
-          <button
-            className="secondaryButton"
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              setMessage('');
-            }}
-          >
-            닫기
-          </button>
-          {message && <p className="authMessage">{message}</p>}
         </form>
       )}
+
+      <p className="authHelpText">
+        로그인하면 즐겨찾기, 가보고 싶음, 스팟 제보 기능을 사용할 수 있습니다.
+      </p>
     </div>
   );
 }
